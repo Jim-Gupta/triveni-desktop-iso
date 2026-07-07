@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+
+ <wallpaper>
+    <name>StreamScope</name>
+    <filename>/usr/share/backgrounds/triveni/PHTO_StreamScope_MT_4x3.png</filename>
+    <options>zoom</options>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+    <shade_type>solid</shade_type>
+ </wallpaper>
+ <wallpaper>
+    <name>StreamScope Widescreen</name>
+    <filename>/usr/share/backgrounds/triveni/PHTO_StreamScope_MT_16x9.png</filename>
+    <options>zoom</options>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+    <shade_type>solid</shade_type>
+ </wallpaper>
+
+ <wallpaper>
+    <name>StreamScope XM</name>
+    <filename>/usr/share/backgrounds/triveni/StreamScope_XM_690px.png</filename>
+    <options>centered</options>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+    <shade_type>solid</shade_type>
+ </wallpaper>
+ <wallpaper>
+    <name>StreamScope XM Widescreen</name>
+    <filename>/usr/share/backgrounds/triveni/StreamScope_XM_white_690px.png</filename>
+    <options>centered</options>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+    <shade_type>solid</shade_type>
+ </wallpaper>
+
+</wallpapers>
