@@ -29,7 +29,7 @@ if [ "${#drivers_zip[@]}" -gt 0 ]; then
   unzip "$latest_driver" -d "$ROOT_DIR"
   chmod +x "$ROOT_DIR"/drivers/*.sh
   if [ -x "$ROOT_DIR"/drivers/install-drivers.sh ]; then
-    "$ROOT_DIR"/drivers/auto-install.sh || true
+    "$ROOT_DIR"/drivers/auto-install.sh -y || true
   else
     echo "install-drivers.sh not found or not executable"
   fi
