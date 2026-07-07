@@ -8,10 +8,10 @@ pipeline {
         }
     }
     parameters {
-        string(name: 'BASE_ISO_FILE', defaultValue: params.BASE_ISO_FILE ?: '/mnt/userContent/iso-images/ubuntu-24.04.3-desktop-amd64.iso', description: 'Path to Base ISO')
-        string(name: 'DRIVERS_DIR', defaultValue: params.DRIVERS_DIR ?: '/mnt/userContent/triveni-drivers', description: 'Path to Drivers Directory')
-        string(name: 'SSMT_DEB_DIR', defaultValue: params.SSMT_DEB_DIR ?: '/mnt/userContent/StreamScopeMT_24.04_trunk', description: 'Path to MT Debian')
-        string(name: 'SSXM_DEB_DIR', defaultValue: params.SSXM_DEB_DIR ?: '/mnt/userContent/SSXM_24.04_trunk', description: 'Path to XM Debian')
+        string(name: 'BASE_ISO_FILE', defaultValue: params.BASE_ISO_FILE ?: '', description: 'Path to Base ISO')
+        string(name: 'DRIVERS_DIR', defaultValue: params.DRIVERS_DIR ?: '', description: 'Path to Drivers Directory')
+        string(name: 'SSMT_DEB_DIR', defaultValue: params.SSMT_DEB_DIR ?: '', description: 'Path to MT Debian')
+        string(name: 'SSXM_DEB_DIR', defaultValue: params.SSXM_DEB_DIR ?: '', description: 'Path to XM Debian')
     }
     environment {
         FAILED_STAGE = "Initialization / Agent Setup"
