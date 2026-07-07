@@ -43,6 +43,7 @@ readonly EXTRA_DEBS=(
   "libatomic1"
 
   # Other packages
+  "openssh-server"
   "net-tools"
   "netcat-openbsd|netcat-traditional|netcat"
   "iputils-ping"
