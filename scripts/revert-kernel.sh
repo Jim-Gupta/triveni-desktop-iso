@@ -150,7 +150,7 @@ if ! compgen -G "$KERNEL_DIR/*.deb" > /dev/null; then
 	# CDROM has 6.8.x kernel on it
 	log "No local 6.8 payload found"
 	# --- JRG COMMENTED OUT TO TEST UPGRADING SYSTEM ---
-	# install_68_from_repo
+	install_68_from_repo
 else
 	log "Installing kernel 6.8 packages from local payload"
 	dpkg -i "$KERNEL_DIR"/*.deb || apt-get "${APT_OPTS[@]}" -y -f install
