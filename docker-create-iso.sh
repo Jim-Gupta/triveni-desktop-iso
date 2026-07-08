@@ -17,7 +17,7 @@ HOST_MOUNT_DIR="/home/triveni/docker-mount"
 HOST_WORKSPACE_DIR="$(pwd)"
 
 CONTAINER_USER_CONTENT="/mnt/userContent"
-CONT_BASE_ISO="${CONTAINER_USER_CONTENT}/ubuntu-24.04.3-desktop-amd64.iso"
+CONT_BASE_ISO="${CONTAINER_USER_CONTENT}/ubuntu-24.04-desktop-amd64.iso"
 CONT_DRIVERS_DIR="${CONTAINER_USER_CONTENT}/triveni-drivers"
 CONT_SSMT_DIR="${CONTAINER_USER_CONTENT}/mt"
 CONT_SSXM_DIR="${CONTAINER_USER_CONTENT}/xm"
@@ -37,4 +37,4 @@ docker run --rm \
   "$IMAGE_NAME" \
   sh -c "ant -DBASE_ISO_FILE=\$BASE_ISO_FILE -DDRIVERS_DIR=\$DRIVERS_DIR -DSSMT_DEB_DIR=\$SSMT_DEB_DIR -DSSXM_DEB_DIR=\$SSXM_DEB_DIR"
 
-# ./docker-run-iso.sh -d
+./docker-run-iso.sh -d

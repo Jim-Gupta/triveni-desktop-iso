@@ -1,8 +1,8 @@
 #cloud-config
 autoinstall:
   version: 1
-  # early-commands:
-  #   - /bin/bash /cdrom/scripts/early-commands.sh
+  early-commands:
+    - /cdrom/scripts/ssmt/backup.sh
   refresh-installer:
     update: no
   drivers:
@@ -35,15 +35,19 @@ autoinstall:
     # cloud-config sets the timezone after guidebuilder has started
     # modify scripts/late-command.sh to change
     # timezone: America/New_York
+  kernel:
+    package: linux-image-6.8.0-31-generic
   late-commands:
     - /cdrom/scripts/copy-resources-to-target.sh
     - curtin in-target --target=/target -- /cdrom/scripts/revert-kernel.sh
     - curtin in-target --target=/target -- /cdrom/scripts/install-debians.sh
     - curtin in-target --target=/target -- /cdrom/scripts/rename-ifaces.sh
     - curtin in-target --target=/target -- /cdrom/scripts/finalize-os.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-ssxm.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-ssmt.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-triveni-drivers.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/ssxm/install.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/ssmt/install.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/drivers/install.sh
+    - sync
+    - sleep 3
   shutdown: 'poweroff'
 
 # to find errors in this script:

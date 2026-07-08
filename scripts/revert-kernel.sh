@@ -147,14 +147,17 @@ log "Disabling unattended upgrades"
 systemctl disable --now unattended-upgrades || true
 
 if ! compgen -G "$KERNEL_DIR/*.deb" > /dev/null; then
+	# CDROM has 6.8.x kernel on it
 	log "No local 6.8 payload found"
-	install_68_from_repo
+	# --- JRG COMMENTED OUT TO TEST UPGRADING SYSTEM ---
+	# install_68_from_repo
 else
 	log "Installing kernel 6.8 packages from local payload"
 	dpkg -i "$KERNEL_DIR"/*.deb || apt-get "${APT_OPTS[@]}" -y -f install
 
 	# Local payload may be older (for example 6.8.0-31). If online,
 	# move to latest available 6.8.0-x before purging/holding.
+
 	install_68_from_repo
 fi
 apt-get "${APT_OPTS[@]}" -y -f install

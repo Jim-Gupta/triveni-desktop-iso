@@ -81,5 +81,13 @@ qemu-system-x86_64 \
   -m "$VHD_MEMORY" \
   -drive file="$VHD_IMAGE",if=virtio,cache=writeback \
   -cdrom "$TARGET_ISO" \
-  -device virtio-vga,xres=1920,yres=1080 \
-  -display gtk,zoom-to-fit=off
+  -device virtio-vga,xres=1024,yres=768 \
+  -display gtk,zoom-to-fit=on \
+  -netdev user,id=net0,net=10.0.2.0/24 \
+  -device virtio-net-pci,netdev=net0,mac=52:54:00:12:34:56 \
+  -netdev user,id=net1,net=192.168.2.10/24 \
+  -device virtio-net-pci,netdev=net1,mac=52:54:00:12:34:57 \
+  -netdev user,id=net2,net=192.168.2.20/24 \
+  -device virtio-net-pci,netdev=net2,mac=52:54:00:12:34:58 \
+  -netdev user,id=net3,net=192.168.2.30/24 \
+  -device virtio-net-pci,netdev=net3,mac=52:54:00:12:34:59

@@ -214,6 +214,7 @@ stage_scripts_and_boot_config() {
     mkdir -p iso/scripts
     cp -a scripts/* iso/scripts/
     chmod +x iso/scripts/*.sh
+    find iso/scripts -name "*.sh" -exec chmod +x {} +
     cp -a config/grub.cfg iso/boot/grub/
     cp -a config/grub_background.png iso/boot/grub/
 }

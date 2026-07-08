@@ -2,8 +2,8 @@
 version: 1
 autoinstall:
   version: 1
-  # early-commands:
-  #   - /bin/bash /cdrom/scripts/early-commands.sh
+  early-commands:
+    - /cdrom/scripts/ssmt/backup.sh
   refresh-installer:
     update: no
   drivers:
@@ -44,7 +44,9 @@ autoinstall:
     - curtin in-target --target=/target -- /cdrom/scripts/install-debians.sh
     - curtin in-target --target=/target -- /cdrom/scripts/rename-ifaces.sh
     - curtin in-target --target=/target -- /cdrom/scripts/finalize-os.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-ssxm.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-ssmt.sh
-    - curtin in-target --target=/target -- /var/triveni/install/install-triveni-drivers.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/ssxm/install.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/ssmt/install.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/drivers/install.sh
+    - sync
+    - sleep 3
   shutdown: 'poweroff'
