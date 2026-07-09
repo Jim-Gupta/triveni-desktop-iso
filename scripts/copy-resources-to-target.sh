@@ -12,7 +12,8 @@ cp -Ra /cdrom/pool/install/* /target/var/triveni/install
 
 chmod +x /target/var/triveni/install/*.sh
 
-cp -Ra /cdrom/pool/os-extras /target/tmp
+mkdir -p /target/tmp/resources
+cp -Ra /cdrom/pool/os-extras/. /target/tmp/resources/
 chmod +x /target/tmp/resources/*.sh
 
 exit 0
