@@ -13,6 +13,31 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 echo "**********************************************************************"
 echo "Running rename-ifaces.sh (renaming network interfaces)"
 
+cleanup_installer_network_state() {
+    local profile
+
+    mkdir -p /etc/NetworkManager/system-connections
+
+    for profile in /etc/NetworkManager/system-connections/*; do
+        [ -e "$profile" ] || continue
+
+        case "$(basename "$profile")" in
+            Wired*|netplan-*|installer-*|"System "*)
+                echo "Removing installer-generated NetworkManager profile: $profile"
+                rm -f "$profile"
+                ;;
+        esac
+    done
+
+    for profile in /etc/netplan/*.yaml; do
+        [ -e "$profile" ] || continue
+        if grep -Eq 'installer-nic|subiquity|autoinstall' "$profile"; then
+            echo "Removing installer-generated netplan file: $profile"
+            rm -f "$profile"
+        fi
+    done
+}
+
 
 # Configures NetworkManager to establish a DHCP address.
 # Args: interfaceName macAddress uniqueId
@@ -96,8 +121,7 @@ function map() {
 }
 
 # configure NICs
-mkdir -p /etc/NetworkManager/system-connections
-rm -f /etc/NetworkManager/system-connections/Wired*
+cleanup_installer_network_state
 
 # find all ethernet (e*) nics
 declare -A NICS

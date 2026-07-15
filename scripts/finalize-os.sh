@@ -119,6 +119,50 @@ fix_permissions() {
   [ -d /usr/share/applications ] && chmod -R a+r /usr/share/applications || true
 }
 
+configure_gdm_login_background() {
+  local bg_path="/usr/share/backgrounds/triveni/profile_picture.png"
+  local gdm_db_dir="/etc/dconf/db/gdm.d"
+  local gdm_conf_file="$gdm_db_dir/01-triveni-login-background"
+
+  if [ ! -f "$bg_path" ]; then
+    warn "$bg_path not found; skipping GDM login background configuration"
+    return
+  fi
+
+  mkdir -p "$gdm_db_dir"
+  cat >"$gdm_conf_file" <<EOF
+[org/gnome/desktop/background]
+picture-uri='file://$bg_path'
+picture-uri-dark='file://$bg_path'
+picture-options='zoom'
+EOF
+}
+
+configure_login_user_avatar() {
+  local username="triveni"
+  local source_icon="/usr/share/backgrounds/triveni/profile_picture.png"
+  local icon_dir="/var/lib/AccountsService/icons"
+  local users_dir="/var/lib/AccountsService/users"
+  local icon_path="$icon_dir/$username"
+  local user_file="$users_dir/$username"
+
+  if [ ! -f "$source_icon" ]; then
+    warn "$source_icon not found; skipping login avatar configuration"
+    return
+  fi
+
+  mkdir -p "$icon_dir" "$users_dir"
+  cp -f "$source_icon" "$icon_path"
+  chmod 0644 "$icon_path"
+
+  cat >"$user_file" <<EOF
+[User]
+Icon=$icon_path
+SystemAccount=false
+EOF
+  chmod 0644 "$user_file"
+}
+
 cleanup_smartcard_overrides() {
   rm -f /etc/pam.d/*smartcard* || true
   rm -f /etc/alternatives/gdm-smartcard || true
@@ -164,6 +208,8 @@ main() {
   configure_update_policy
   configure_network_timeouts
   apply_os_extras
+  configure_gdm_login_background
+  configure_login_user_avatar
   seed_triveni_home
   fix_permissions
   cleanup_smartcard_overrides

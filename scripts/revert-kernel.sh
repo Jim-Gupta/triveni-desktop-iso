@@ -8,6 +8,7 @@ readonly KERNEL_DIR="/tmp/resources/kernel-6.8"
 readonly KERNEL_PIN_FILE="/etc/apt/preferences.d/99-kernel-6.8-only.pref"
 readonly LOG_FILE="/var/log/triveni-install.log"
 readonly APT_OPTS=(-o Dpkg::Use-Pty=0 -o APT::Color=0)
+readonly RUN_ONLINE_REFRESH="${RUN_ONLINE_REFRESH:-1}"
 
 mkdir -p /var/log
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -149,8 +150,11 @@ systemctl disable --now unattended-upgrades || true
 if ! compgen -G "$KERNEL_DIR/*.deb" > /dev/null; then
 	# CDROM has 6.8.x kernel on it
 	log "No local 6.8 payload found"
-	# --- JRG COMMENTED OUT TO TEST UPGRADING SYSTEM ---
-	install_68_from_repo
+	if [ "$RUN_ONLINE_REFRESH" = "1" ]; then
+		install_68_from_repo
+	else
+		log "Skipping online 6.8 refresh in late-commands mode"
+	fi
 else
 	log "Installing kernel 6.8 packages from local payload"
 	dpkg -i "$KERNEL_DIR"/*.deb || apt-get "${APT_OPTS[@]}" -y -f install
@@ -158,7 +162,11 @@ else
 	# Local payload may be older (for example 6.8.0-31). If online,
 	# move to latest available 6.8.0-x before purging/holding.
 
-	install_68_from_repo
+	if [ "$RUN_ONLINE_REFRESH" = "1" ]; then
+		install_68_from_repo
+	else
+		log "Skipping online 6.8 refresh in late-commands mode"
+	fi
 fi
 apt-get "${APT_OPTS[@]}" -y -f install
 
@@ -170,7 +178,11 @@ apt-get "${APT_OPTS[@]}" -y purge \
 	linux-image-generic-hwe* || true
 
 purge_kernels_above_68
-ensure_ga_meta_packages
+if [ "$RUN_ONLINE_REFRESH" = "1" ]; then
+	ensure_ga_meta_packages
+else
+	log "Skipping GA meta-package online install in late-commands mode"
+fi
 unhold_installed_68_packages
 configure_68_only_pin
 

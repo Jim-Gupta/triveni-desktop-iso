@@ -4,10 +4,12 @@ autoinstall:
   version: 1
   early-commands:
     - /cdrom/scripts/ssmt/backup.sh
+    - /cdrom/scripts/select-installer-nic.sh
   refresh-installer:
     update: no
   drivers:
     install: false
+  updates: security
   apt:
     disable_suites: [security, updates, backports]
     preserve_sources_list: true
@@ -38,10 +40,13 @@ autoinstall:
     # cloud-config sets the timezone after guidebuilder has started
     # modify scripts/late-command.sh to change
     # timezone: America/New_York
+  kernel:
+    package: linux-generic
   late-commands:
     - /cdrom/scripts/copy-resources-to-target.sh
     - curtin in-target --target=/target -- /cdrom/scripts/revert-kernel.sh
     - curtin in-target --target=/target -- /cdrom/scripts/install-debians.sh
+    - curtin in-target --target=/target -- /cdrom/scripts/install-chrome.sh
     - curtin in-target --target=/target -- /cdrom/scripts/rename-ifaces.sh
     - curtin in-target --target=/target -- /cdrom/scripts/finalize-os.sh
     - curtin in-target --target=/target -- /cdrom/scripts/ssxm/install.sh

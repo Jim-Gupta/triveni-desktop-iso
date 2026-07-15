@@ -8,7 +8,7 @@ REM Make sure to start Docker Desktop before running this script.
 REM ==========================================
 REM Define Variables
 REM ==========================================
-SET IMAGE_NAME=ss-noble-iso:latest
+SET IMAGE_NAME=triveni-desktop-iso:latest
 
 REM Host Paths
 REM The HOST_MOUNT_DIR will be mounted to the container at /mnt/userContent.  It should contain the ISO, the .deb files and the repo.tgz 

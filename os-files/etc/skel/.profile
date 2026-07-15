@@ -69,5 +69,18 @@ if [ ! -e .done.login ]; then
     # reset the shell so it doesn't keep popping up the search when logging in
     dconf reset -f /org/gnome/shell
 
+    # Force default dock favorites for first login and keep Firefox unpinned.
+    # gsettings set org.gnome.shell favorite-apps "['google-chrome.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'snap-store_snap-store.desktop']"
+    gsettings set org.gnome.shell favorite-apps "['google-chrome.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop']"
+
+    # Re-apply app-specific favorites after shell reset/default favorites.
+    if [ -x /opt/ssmt/bin/pinapps.sh ]; then
+        /opt/ssmt/bin/pinapps.sh
+    fi
+
+    if [ -x /opt/ssxm/pinapps.sh ]; then
+        /opt/ssxm/pinapps.sh
+    fi
+
     touch .done.login
 fi

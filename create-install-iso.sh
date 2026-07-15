@@ -167,13 +167,12 @@ stage_pool_content() {
     mkdir -p iso/pool/os-extras
 
     if [ -n "$DRIVERS_DIR" ]; then
+        local drivers_output="iso/pool/install/drivers"
         shopt -s nullglob
-        local drivers_zip=("$DRIVERS_DIR"/drivers_*.zip)
-        shopt -u nullglob
-        if [ "${#drivers_zip[@]}" -gt 0 ]; then
-            cp -a "${drivers_zip[@]}" iso/pool/install/
-            log "Copied drivers from $DRIVERS_DIR to iso/pool/install"
-        fi
+        mkdir -p "$drivers_output"
+        cp -ar "$DRIVERS_DIR"/* "$drivers_output"/
+        copied_driver_count=$(find "$drivers_output" -type f | wc -l)
+        log "Driver files staged in $drivers_output: $copied_driver_count"
     fi
 
     if [ -n "$SSXM_DIR" ]; then
@@ -280,9 +279,11 @@ rebuild_md5sum() {
         cd iso
         # 1. Explicitly supply '.' as the starting path so find matches correctly
         # 2. Exclude md5sum.txt itself
-        # 3. Exclude the entire ./boot directory to bypass xorriso auto-patching errors
+        # 3. Exclude generated El Torito catalog rewritten by ISO mastering
+        # 4. Exclude the entire ./boot directory to bypass xorriso auto-patching errors
         find . -type f \
             '!' -name "md5sum.txt" \
+            '!' -path "./boot.catalog" \
             '!' -path "./boot/*" \
             -exec "$md5_bin" {} \;
     ) > md5sum.txt

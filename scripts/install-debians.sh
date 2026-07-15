@@ -43,6 +43,7 @@ readonly EXTRA_DEBS=(
   "libatomic1"
 
   # Other packages
+  "dkms"
   "openssh-server"
   "net-tools"
   "netcat-openbsd|netcat-traditional|netcat"
@@ -195,12 +196,6 @@ finalize_package_state() {
   fi
 }
 
-install_chrome_browser() {
-  wget -P /tmp https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-  apt-get install -y /tmp/google-chrome-stable_current_amd64.deb
-  rm /tmp/google-chrome-stable_current_amd64.deb
-}
-
 main() {
   require_root
   require_commands
@@ -214,7 +209,6 @@ main() {
   filter_available_packages
   install_packages_one_by_one
   finalize_package_state
-  install_chrome_browser
   echo "[install-extras] Completed at: $(date -Is 2>/dev/null || date)"
   exit 0
 }
