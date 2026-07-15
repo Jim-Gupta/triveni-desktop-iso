@@ -11,7 +11,7 @@ readonly LOG_FILE="/var/log/triveni-install.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "**********************************************************************"
-echo "Running install-drivers.sh (installing Triveni drivers from /var/triveni/install/drivers/ if present)"
+echo "Running drivers/install.sh (installing Triveni drivers from /var/triveni/install/drivers/ if present)"
 
 
 # Check if the script is running as root

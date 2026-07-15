@@ -70,6 +70,13 @@ download_chrome_deb() {
 	return 1
 }
 
+disable_chrome_repo_sources() {
+	# google-chrome postinst may add a dl.google.com apt source; disable it
+	# so subsequent installer apt updates do not depend on that host.
+	rm -f /etc/apt/sources.list.d/google-chrome.list
+	rm -f /etc/apt/sources.list.d/google-chrome.sources
+}
+
 main() {
 	require_commands
 
@@ -81,6 +88,7 @@ main() {
 	if local_deb=$(find_local_chrome_deb); then
 		echo "[install-chrome] Installing Chrome from local package: $local_deb"
 		if apt-get -o Dpkg::Use-Pty=0 -o APT::Color=0 install -y "$local_deb"; then
+			disable_chrome_repo_sources
 			echo "[install-chrome] Google Chrome installed successfully from local package"
 			exit 0
 		fi
@@ -96,6 +104,7 @@ main() {
 
 	if apt-get -o Dpkg::Use-Pty=0 -o APT::Color=0 install -y "$CHROME_DEB_PATH"; then
 		rm -f "$CHROME_DEB_PATH"
+		disable_chrome_repo_sources
 		echo "[install-chrome] Google Chrome installed successfully"
 		exit 0
 	fi

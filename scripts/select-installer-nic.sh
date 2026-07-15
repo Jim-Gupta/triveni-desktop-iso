@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -euo pipefail
+# This early-command must never fail the installer. Best-effort only.
+set -uo pipefail
 
 readonly AUTOINSTALL_FILE="/autoinstall.yaml"
 readonly LOG_FILE="/var/log/triveni-installer-nic.log"
@@ -130,7 +131,7 @@ rewrite_autoinstall_network() {
 	local tmp_file
 
 	tmp_file=$(mktemp)
-	python3 - "$AUTOINSTALL_FILE" "$tmp_file" "$nic" <<'PY'
+	if ! python3 - "$AUTOINSTALL_FILE" "$tmp_file" "$nic" <<'PY'
 import sys
 from pathlib import Path
 
@@ -143,11 +144,27 @@ old = """  network:\n    version: 2\n    ethernets: {}\n"""
 new = f"""  network:\n    version: 2\n    ethernets:\n      installer-nic:\n        match:\n          name: {nic}\n        dhcp4: true\n        optional: true\n"""
 
 if old not in text:
-    raise SystemExit("Expected default network block not found in /autoinstall.yaml")
+    print("[installer-nic] Expected default network block not found; leaving autoinstall network config unchanged")
+    target.write_text(text)
+    raise SystemExit(0)
 
 target.write_text(text.replace(old, new, 1))
 PY
-	mv "$tmp_file" "$AUTOINSTALL_FILE"
+	then
+		echo "[installer-nic] Failed to rewrite autoinstall network config; continuing without rewrite"
+		rm -f "$tmp_file"
+		return 0
+	fi
+
+	if [ -s "$tmp_file" ]; then
+		mv "$tmp_file" "$AUTOINSTALL_FILE" || {
+			echo "[installer-nic] Could not replace $AUTOINSTALL_FILE; continuing without rewrite"
+			rm -f "$tmp_file"
+			return 0
+		}
+	else
+		rm -f "$tmp_file"
+	fi
 }
 
 if [ ! -f "$AUTOINSTALL_FILE" ]; then
@@ -157,7 +174,7 @@ fi
 
 if installer_nic=$(pick_installer_nic); then
 	echo "[installer-nic] Selected installer NIC: $installer_nic"
-	rewrite_autoinstall_network "$installer_nic"
+	rewrite_autoinstall_network "$installer_nic" || true
 else
 	echo "[installer-nic] No safe installer NIC found; leaving installer network config unchanged"
 fi

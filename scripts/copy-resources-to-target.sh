@@ -14,6 +14,6 @@ chmod +x /target/var/triveni/install/*.sh
 
 mkdir -p /target/tmp/resources
 cp -Ra /cdrom/pool/os-extras/. /target/tmp/resources/
-chmod +x /target/tmp/resources/*.sh
+find /target/tmp/resources -maxdepth 1 -type f -name "*.sh" -exec chmod +x {} +
 
 exit 0
