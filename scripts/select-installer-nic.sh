@@ -77,8 +77,27 @@ is_onboard_interface() {
 	return 1
 }
 
+pick_best_nic() {
+	local nic
+	local score
+
+	[ "$#" -gt 0 ] || return 1
+
+	for nic in "$@"; do
+		score=0
+
+		# Multi-function add-in NICs often end with f0/f1; de-prioritize them.
+		if [[ "$nic" =~ f[0-9]+$ ]]; then
+			score=$((score + 100))
+		fi
+
+		printf '%03d\t%03d\t%s\n' "$score" "${#nic}" "$nic"
+	done | sort -k1,1n -k2,2n -k3,3 | awk 'NR==1 {print $3}'
+}
+
 pick_installer_nic() {
 	local nic
+	local selected
 	local -a onboard=()
 	local -a preferred=()
 	local -a fallback=()
@@ -109,17 +128,20 @@ pick_installer_nic() {
 	done
 
 	if [ "${#onboard[@]}" -gt 0 ]; then
-		echo "${onboard[0]}"
+		selected="$(pick_best_nic "${onboard[@]}")"
+		echo "$selected"
 		return 0
 	fi
 
 	if [ "${#preferred[@]}" -gt 0 ]; then
-		echo "${preferred[0]}"
+		selected="$(pick_best_nic "${preferred[@]}")"
+		echo "$selected"
 		return 0
 	fi
 
 	if [ "${#fallback[@]}" -gt 0 ]; then
-		echo "${fallback[0]}"
+		selected="$(pick_best_nic "${fallback[@]}")"
+		echo "$selected"
 		return 0
 	fi
 

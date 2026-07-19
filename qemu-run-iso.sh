@@ -14,25 +14,35 @@ VHD_DISKSIZE="200G"
 VHD_CPUS=4
 VHD_MEMORY=16384
 FORCE_DELETE=false
+REUSE_EXISTING=false
 DISABLE_NETWORK=false
 
 # ==========================================
-# Argument Parsing (Catches the -d and -n flags)
+# Argument Parsing (Catches the -d, -r, and -n flags)
 # ==========================================
-while getopts "dn" opt; do
+while getopts "drn" opt; do
     case ${opt} in
         d )
             FORCE_DELETE=true
+            ;;
+        r )
+            REUSE_EXISTING=true
             ;;
         n )
             DISABLE_NETWORK=true
             ;;
         \? )
-            echo "Usage: $0 [-d] [-n]"
+            echo "Usage: $0 [-d | -r] [-n]"
             exit 1
             ;;
     esac
 done
+
+if [ "$FORCE_DELETE" = true ] && [ "$REUSE_EXISTING" = true ]; then
+    echo "❌ Error: -d and -r cannot be used together."
+    echo "Usage: $0 [-d | -r] [-n]"
+    exit 1
+fi
 
 # ==========================================
 # 1. Locate the Compiled ISO
@@ -66,8 +76,16 @@ if [ -f "$VHD_IMAGE" ]; then
     if [ "$FORCE_DELETE" = true ]; then
         echo "⚡ '-d' flag detected. Bypassing prompt..."
         create_fresh_vhd
+    elif [ "$REUSE_EXISTING" = true ]; then
+        echo "♻️  '-r' flag detected. Reusing existing virtual drive: $VHD_IMAGE"
+    else
+        echo "♻️  Existing virtual drive detected. Reusing: $VHD_IMAGE"
     fi
 else
+    if [ "$REUSE_EXISTING" = true ]; then
+        echo "❌ Error: '-r' requested but virtual drive not found: $VHD_IMAGE"
+        exit 1
+    fi
     echo "💽 Virtual drive not found."
     create_fresh_vhd
 fi
@@ -100,6 +118,13 @@ qemu_cmd=(
     -device virtio-serial-pci
     -device virtserialport,chardev=ch1,id=ch1,name=com.redhat.spice.0
 )
+
+if [ "$REUSE_EXISTING" = true ]; then
+        echo "📀 Forcing one-time boot from ISO for reuse flow (-r)"
+        qemu_cmd+=(
+            -boot once=d,menu=on
+        )
+fi
 
 if [ "$DISABLE_NETWORK" = false ]; then
         qemu_cmd+=(

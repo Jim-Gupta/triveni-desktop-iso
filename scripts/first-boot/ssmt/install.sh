@@ -3,7 +3,9 @@
 trap 'exit 0' EXIT
 set -e
 
-readonly ROOT_DIR="/var/triveni/install"
+readonly BACKUP_FILE="/tmp/backup/ssmt_backup.tar.gz"
+
+readonly ROOT_DIR="/var/triveni/install/first-boot/ssmt"
 
 export DEBIAN_FRONTEND=noninteractive
 readonly LOG_FILE="/var/log/triveni-install.log"
@@ -11,7 +13,7 @@ readonly LOG_FILE="/var/log/triveni-install.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "**********************************************************************"
-echo "Running install-ssmt.sh (installing SSMT from /var/triveni/install/ssmt_*.deb if present)"
+echo "Running install-ssmt.sh (installing SSMT from /var/triveni/install/first-boot/ssmt/ssmt_*.deb if present)"
 
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then
@@ -41,18 +43,18 @@ if [ "${#ssmt_debs[@]}" -gt 0 ]; then
     fi
 
     # Restore SSMT configuration and license from backup if present
-    if [ -f /tmp/ssmt_backup.tar.gz ]; then
+    if [ -f "$BACKUP_FILE" ]; then
         echo "Restoring ssmt configuration and license to target system..."
         mkdir -p /opt/ssmt
         
         # Extract archive directly into /opt/ssmt (removed the /target prefix)
-        tar -xzf /tmp/ssmt_backup.tar.gz -C /opt/ssmt/
+        tar -xzf "$BACKUP_FILE" -C /opt/ssmt/
         chown -R 1000:1000 /opt/ssmt
         
         # Clean up the temporary backup archive inside the target
-        rm -f /tmp/ssmt_backup.tar.gz
+        # rm -f /tmp/ssmt_backup.tar.gz
     else
-        echo "WARNING: Backup archive was not found in /tmp! Proceeding with clean install setup."
+        echo "WARNING: Backup archive was not found at $BACKUP_FILE. Proceeding with clean install setup."
     fi
 else
     echo "Skipping SSMT install: no matching SSMT deb in ${ROOT_DIR}."

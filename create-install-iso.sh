@@ -6,14 +6,17 @@ echo "$0 $*" 1>&2
 
 readonly DIST="dist"
 readonly DEFAULT_ISO_IN=""
-readonly USER_DATA_YAMLS=("stdcln" "uefistdcln")
+readonly USER_DATA_YAMLS=("legacy-clean" "legacy-upgrade" "uefi-clean" "uefi-upgrade")
 
 ISO_IN="$DEFAULT_ISO_IN"
 SSMT_DIR=""
 SSXM_DIR=""
 DRIVERS_DIR=""
+GUIDE_BUILDER_DEB_DIR=""
+ENTERPRISE_DEB_DIR=""
 ISO_DESC=""
 ISO_OUT=""
+BUILD_TIMESTAMP=""
 INSTALL_MENU_TITLE="Install Triveni Digital System"
 
 log() {
@@ -34,7 +37,7 @@ require_commands() {
 
 usage() {
     cat <<EOF
-Usage: $0 -d <drivers.zip> [-m <mt_deb_dir>] [-x <xm_deb_dir>] [-i <base_iso_path>]
+Usage: $0 -d <drivers_dir> [-m <mt_deb_dir>] [-x <xm_deb_dir>] [-g <gb_deb_dir>] [-i <base_iso_path>]
 EOF
 }
 
@@ -143,8 +146,41 @@ compute_iso_desc() {
     fi
 
     [ -n "$ISO_DESC" ] || ISO_DESC="streamscope"
-    ISO_OUT="$DIST/${ISO_DESC}-desktop_24.04_amd64.iso"
+    BUILD_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+    ISO_OUT="$DIST/${ISO_DESC}-desktop_24.04_amd64_${BUILD_TIMESTAMP}.iso"
     log "ISO Output Filename=${ISO_OUT}"
+}
+
+write_build_metadata() {
+    local metadata_file="iso/pool/install/build.txt"
+    local debians_included=()
+    local source_iso_name
+    local output_iso_name
+
+    source_iso_name="$(basename "$ISO_IN")"
+    output_iso_name="$(basename "$ISO_OUT")"
+
+    if [ -d "iso/pool/install" ]; then
+        while IFS= read -r deb_path; do
+            debians_included+=("$deb_path")
+        done < <(find iso/pool/install -type f -name '*.deb' -printf '%f\n' | sort)
+    fi
+
+    {
+        echo "iso_name=${output_iso_name}"
+        echo "source_iso=${source_iso_name}"
+        echo "install_menu_title=${INSTALL_MENU_TITLE}"
+        echo
+
+        echo "[debians_included]"
+        if [ "${#debians_included[@]}" -gt 0 ]; then
+            printf '%s\n' "${debians_included[@]}"
+        else
+            echo "none"
+        fi
+    } > "$metadata_file"
+
+    log "Wrote build metadata: $metadata_file"
 }
 
 prepare_workspace() {
@@ -212,6 +248,57 @@ stage_autoinstall_configs() {
 stage_scripts_and_boot_config() {
     mkdir -p iso/scripts
     cp -a scripts/* iso/scripts/
+
+    mkdir -p iso/scripts/first-boot
+    rm -rf iso/scripts/first-boot/ssxm
+    rm -rf iso/scripts/first-boot/ssmt
+    rm -rf iso/scripts/first-boot/triveni-drivers
+    rm -rf iso/scripts/first-boot/gb
+
+    if [ -n "$SSXM_DIR" ]; then
+        shopt -s nullglob
+        local xm_debs=("$SSXM_DIR"/ssxm_*.deb)
+        shopt -u nullglob
+        if [ "${#xm_debs[@]}" -gt 0 ]; then
+            cp -a scripts/first-boot/ssxm iso/scripts/first-boot/
+            cp -a "${xm_debs[@]}" iso/scripts/first-boot/ssxm/
+            log "Staged SSXM first-boot scripts and debs"
+        fi
+    fi
+
+    if [ -n "$SSMT_DIR" ]; then
+        shopt -s nullglob
+        local mt_debs=("$SSMT_DIR"/ssmt_*.deb)
+        shopt -u nullglob
+        if [ "${#mt_debs[@]}" -gt 0 ]; then
+            cp -a scripts/first-boot/ssmt iso/scripts/first-boot/
+            cp -a "${mt_debs[@]}" iso/scripts/first-boot/ssmt/
+            log "Staged SSMT first-boot scripts and debs"
+        fi
+    fi
+
+    if [ -n "$DRIVERS_DIR" ] && [ -d "$DRIVERS_DIR" ]; then
+        cp -a scripts/first-boot/triveni-drivers iso/scripts/first-boot/
+        shopt -s nullglob
+        local driver_payload=("$DRIVERS_DIR"/*)
+        shopt -u nullglob
+        if [ "${#driver_payload[@]}" -gt 0 ]; then
+            cp -a "${driver_payload[@]}" iso/scripts/first-boot/triveni-drivers/
+        fi
+        log "Staged triveni-drivers first-boot scripts and payload"
+    fi
+
+    if [ -n "$GUIDE_BUILDER_DEB_DIR" ]; then
+        shopt -s nullglob
+        local gb_debs=("$GUIDE_BUILDER_DEB_DIR"/gb_*.deb)
+        shopt -u nullglob
+        if [ "${#gb_debs[@]}" -gt 0 ]; then
+            cp -a scripts/first-boot/gb iso/scripts/first-boot/
+            cp -a "${gb_debs[@]}" iso/scripts/first-boot/gb/
+            log "Staged GB first-boot scripts and debs"
+        fi
+    fi
+
     chmod +x iso/scripts/*.sh
     find iso/scripts -name "*.sh" -exec chmod +x {} +
     cp -a config/grub.cfg iso/boot/grub/
@@ -223,8 +310,8 @@ compute_install_menu_title() {
     local has_mt=0
 
     shopt -s nullglob
-    local xm_pkgs=(iso/pool/repo/ssxm_*.deb)
-    local mt_pkgs=(iso/pool/repo/ssmt_*.deb)
+    local xm_pkgs=(iso/scripts/first-boot/ssxm/ssxm_*.deb)
+    local mt_pkgs=(iso/scripts/first-boot/ssmt/ssmt_*.deb)
     shopt -u nullglob
 
     [ "${#xm_pkgs[@]}" -gt 0 ] && has_xm=1
@@ -363,6 +450,7 @@ main() {
     stage_autoinstall_configs
     stage_scripts_and_boot_config
     compute_install_menu_title
+    write_build_metadata
     apply_grub_menu_title
     rebuild_md5sum
     extract_boot_images

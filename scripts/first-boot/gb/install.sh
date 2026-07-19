@@ -3,14 +3,14 @@
 trap 'exit 0' EXIT
 set -e
 
-readonly ROOT_DIR="/var/triveni/install"
+readonly ROOT_DIR="/var/triveni/install/first-boot/gb"
 
 export DEBIAN_FRONTEND=noninteractive
 readonly LOG_FILE="/var/log/triveni-install.log"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "**********************************************************************"
-echo "Running install-gb.sh (installing GB from /var/triveni/install/gb_*.deb if present)"
+echo "Running install-gb.sh (installing GB from /var/triveni/install/first-boot/gb/gb_*.deb if present)"
 
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then

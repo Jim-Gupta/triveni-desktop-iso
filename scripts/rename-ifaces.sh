@@ -7,6 +7,8 @@
 
 set -e
 
+STRICT_NETWORK_MODE="${TRIVENI_STRICT_NETWORK:-0}"
+
 LOG_FILE=/var/log/triveni-install.log
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -99,13 +101,10 @@ address1=192.168.$STATIC_INDEX.10/24,0.0.0.0
     (( ++STATIC_INDEX ))
 }
 
-DHCP_ASSIGNED=0
-
-# Args: interfaceName macAddress uniqueId
+# Args: interfaceName macAddress uniqueId useDhcp(1|0)
 function configInterface() {
-    if [ $DHCP_ASSIGNED -eq 0 ]; then
+    if [ "${4:-0}" -eq 1 ]; then
         configDhcp "$1" "$2" "$3"
-        DHCP_ASSIGNED=1
     else
         configStaticIp "$1" "$2" "$3"
     fi
@@ -120,8 +119,93 @@ function map() {
     echo -e "[Match]\nMACAddress=$MAC_ADDRESS\n\n[Link]\nName=$NEW_NAME" > "/etc/systemd/network/10-persistent-net-$ORG_NAME.link"
 }
 
+function ensureNetworkReady() {
+    local primary_iface="$1"
+    local default_gw=""
+
+    echo "[rename-ifaces] Ensuring live network availability after interface rename"
+
+    if [ -n "$primary_iface" ] && ip link show "$primary_iface" >/dev/null 2>&1; then
+        ip link set dev "$primary_iface" up || true
+    fi
+
+    if ! ip route show default | grep -q '^default '; then
+        if [ -n "$ORIG_DEFAULT_GW" ] && [ -n "$primary_iface" ] && ip link show "$primary_iface" >/dev/null 2>&1; then
+            echo "[rename-ifaces] Restoring default route via $ORIG_DEFAULT_GW on $primary_iface"
+            ip route replace default via "$ORIG_DEFAULT_GW" dev "$primary_iface" || true
+        fi
+    fi
+
+    if [ -n "$primary_iface" ] && ip link show "$primary_iface" >/dev/null 2>&1; then
+        if ! ip -4 addr show dev "$primary_iface" | grep -q 'inet '; then
+            if command -v dhclient >/dev/null 2>&1; then
+                echo "[rename-ifaces] Requesting DHCP lease on $primary_iface"
+                dhclient -r "$primary_iface" >/dev/null 2>&1 || true
+                dhclient -4 -1 "$primary_iface" || true
+            elif command -v nmcli >/dev/null 2>&1; then
+                echo "[rename-ifaces] dhclient not found; requesting DHCP via NetworkManager on $primary_iface"
+                nmcli device set "$primary_iface" managed yes >/dev/null 2>&1 || true
+                nmcli connection reload >/dev/null 2>&1 || true
+                nmcli device connect "$primary_iface" >/dev/null 2>&1 || true
+            fi
+        fi
+    fi
+
+    if ! getent ahostsv4 archive.ubuntu.com >/dev/null 2>&1; then
+        echo "[rename-ifaces] DNS lookup failed; applying temporary resolver fallback"
+        if grep -q '127.0.0.53' /etc/resolv.conf 2>/dev/null; then
+            {
+                echo "nameserver 1.1.1.1"
+                echo "nameserver 8.8.8.8"
+            } >/etc/resolv.conf || true
+        fi
+    fi
+
+    echo "[rename-ifaces] Post-rename interface state"
+    ip -br addr || true
+    echo "[rename-ifaces] Post-rename route state"
+    ip route show || true
+
+    default_gw="$(ip route show default 2>/dev/null | awk 'NR==1 {print $3}')"
+
+    if [ "$STRICT_NETWORK_MODE" = "1" ]; then
+        echo "[rename-ifaces] Strict network validation enabled"
+
+        if [ -z "$default_gw" ]; then
+            echo "[rename-ifaces] ERROR: strict mode failed - default route is missing"
+            return 1
+        fi
+
+        if ! ping -c 1 -W 2 "$default_gw" >/dev/null 2>&1; then
+            echo "[rename-ifaces] ERROR: strict mode failed - gateway $default_gw unreachable"
+            return 1
+        fi
+
+        if ! ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+            echo "[rename-ifaces] ERROR: strict mode failed - internet reachability check failed"
+            return 1
+        fi
+
+        if ! getent ahostsv4 archive.ubuntu.com >/dev/null 2>&1; then
+            echo "[rename-ifaces] ERROR: strict mode failed - DNS resolution check failed"
+            return 1
+        fi
+    fi
+
+    if getent ahostsv4 archive.ubuntu.com >/dev/null 2>&1; then
+        echo "[rename-ifaces] Network is ready for subsequent install steps"
+    else
+        echo "[rename-ifaces] WARNING: DNS resolution still failing after recovery attempts"
+    fi
+}
+
 # configure NICs
 cleanup_installer_network_state
+
+ORIG_DEFAULT_IF="$(ip route show default 2>/dev/null | awk 'NR==1 {print $5}')"
+ORIG_DEFAULT_GW="$(ip route show default 2>/dev/null | awk 'NR==1 {print $3}')"
+PRIMARY_RENAMED_IF=""
+DHCP_SOURCE_IF=""
 
 # find all ethernet (e*) nics
 declare -A NICS
@@ -141,6 +225,14 @@ readarray -t SORTED_NICS < <(
 for str in "${!NICS[@]}"; do
     printf '%d\t%s\n' "${#str}" "$str"
 done | sort -k 1,1n -k 2 | cut -f 2- )
+
+if [ -n "$ORIG_DEFAULT_IF" ]; then
+    DHCP_SOURCE_IF="$ORIG_DEFAULT_IF"
+elif [ "${#SORTED_NICS[@]}" -gt 0 ]; then
+    DHCP_SOURCE_IF="${SORTED_NICS[0]}"
+fi
+
+echo "[rename-ifaces] DHCP source interface before rename: ${DHCP_SOURCE_IF:-unknown}"
 
 # swap motherboard nics for certain motherboards so that port 0 is on the left when looking at the back
 if ! dmidecode -t 2 | grep -q "Product Name: X10SRA"; then
@@ -165,13 +257,19 @@ CONN_COUNT=1
 rm -f /etc/systemd/network/10-*.link
 for NIC in "${SORTED_NICS[@]}"; do
     NEW_IFACE_NAME="eth0$NIC_COUNT"
+    USE_DHCP=0
     echo "Processing $NIC -> $NEW_IFACE_NAME"
+
+    if [ -n "$DHCP_SOURCE_IF" ] && [ "$NIC" = "$DHCP_SOURCE_IF" ]; then
+        USE_DHCP=1
+        PRIMARY_RENAMED_IF="$NEW_IFACE_NAME"
+    fi
     
     # 1. Write persistent systemd link file for target machine reboots
     map "$NIC" "$NEW_IFACE_NAME" "${NICS[$NIC]}"
     
     # 2. Generate NetworkManager profiles
-    configInterface "$NEW_IFACE_NAME" "${NICS[$NIC]}" "Wired_connection_$CONN_COUNT"
+    configInterface "$NEW_IFACE_NAME" "${NICS[$NIC]}" "Wired_connection_$CONN_COUNT" "$USE_DHCP"
 
     # 3. Force immediate live runtime rename so subsequent scripts can find them right now
     echo "Flipping $NIC to $NEW_IFACE_NAME live in memory..."
@@ -185,6 +283,12 @@ for NIC in "${SORTED_NICS[@]}"; do
     (( ++NIC_COUNT ))
     (( ++CONN_COUNT ))
 done
+
+if [ -z "$PRIMARY_RENAMED_IF" ] && [ "${#SORTED_NICS[@]}" -gt 0 ]; then
+    PRIMARY_RENAMED_IF="eth00"
+fi
+
+ensureNetworkReady "$PRIMARY_RENAMED_IF"
 
 # update NetworkManager config to allow disconnected ifaces
 mkdir -p /etc/NetworkManager/conf.d

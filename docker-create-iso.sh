@@ -37,4 +37,4 @@ docker run --rm \
   "$IMAGE_NAME" \
   sh -c "ant -DBASE_ISO_FILE=\$BASE_ISO_FILE -DDRIVERS_DIR=\$DRIVERS_DIR -DSSMT_DEB_DIR=\$SSMT_DEB_DIR -DSSXM_DEB_DIR=\$SSXM_DEB_DIR"
 
-./docker-run-iso.sh -d
+./qemu-run-iso.sh -d

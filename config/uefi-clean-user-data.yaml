@@ -3,7 +3,7 @@ version: 1
 autoinstall:
   version: 1
   early-commands:
-    - /cdrom/scripts/ssmt/backup.sh
+    # - /cdrom/scripts/first-boot/ssmt/backup.sh
     - /cdrom/scripts/select-installer-nic.sh
   refresh-installer:
     update: no
@@ -39,7 +39,7 @@ autoinstall:
     disable_root: false
     # cloud-config sets the timezone after guidebuilder has started
     # modify scripts/late-command.sh to change
-    # timezone: America/New_York
+    timezone: America/New_York
   kernel:
     package: linux-generic
   late-commands:
@@ -49,9 +49,7 @@ autoinstall:
     - curtin in-target --target=/target -- /cdrom/scripts/install-chrome.sh
     - curtin in-target --target=/target -- /cdrom/scripts/rename-ifaces.sh
     - curtin in-target --target=/target -- /cdrom/scripts/finalize-os.sh
-    - curtin in-target --target=/target -- /cdrom/scripts/ssxm/install.sh
-    - curtin in-target --target=/target -- /cdrom/scripts/ssmt/install.sh
-    - curtin in-target --target=/target -- /cdrom/scripts/drivers/install.sh
     - sync
     - sleep 3
-  shutdown: 'poweroff'
+  #shutdown: 'poweroff'
+  shutdown: 'reboot'
