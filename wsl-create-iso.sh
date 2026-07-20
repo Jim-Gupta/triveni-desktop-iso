@@ -13,4 +13,4 @@ SSXM_DIR="${HOST_MOUNT_DIR}/xm"
   -m "$SSMT_DIR" \
   -x "$SSXM_DIR"
 
-# ./qemu-run-iso.sh -r
+./qemu-run-iso.sh -d

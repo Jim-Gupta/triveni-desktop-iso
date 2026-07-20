@@ -8,6 +8,8 @@
 set -e
 
 STRICT_NETWORK_MODE="${TRIVENI_STRICT_NETWORK:-0}"
+IPV4_WAIT_SECS="${TRIVENI_IPV4_WAIT_SECS:-25}"
+IPV4_WAIT_INTERVAL_SECS="${TRIVENI_IPV4_WAIT_INTERVAL_SECS:-1}"
 
 LOG_FILE=/var/log/triveni-install.log
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -119,6 +121,28 @@ function map() {
     echo -e "[Match]\nMACAddress=$MAC_ADDRESS\n\n[Link]\nName=$NEW_NAME" > "/etc/systemd/network/10-persistent-net-$ORG_NAME.link"
 }
 
+waitForIpv4() {
+    local iface="$1"
+    local waited=0
+
+    [ -n "$iface" ] || return 1
+    [ "$IPV4_WAIT_SECS" -gt 0 ] 2>/dev/null || return 1
+    [ "$IPV4_WAIT_INTERVAL_SECS" -gt 0 ] 2>/dev/null || IPV4_WAIT_INTERVAL_SECS=1
+
+    echo "[rename-ifaces] Waiting up to ${IPV4_WAIT_SECS}s for IPv4 on $iface"
+    while [ "$waited" -lt "$IPV4_WAIT_SECS" ]; do
+        if ip -4 addr show dev "$iface" | grep -q 'inet '; then
+            echo "[rename-ifaces] IPv4 detected on $iface after ${waited}s"
+            return 0
+        fi
+        sleep "$IPV4_WAIT_INTERVAL_SECS"
+        waited=$((waited + IPV4_WAIT_INTERVAL_SECS))
+    done
+
+    echo "[rename-ifaces] WARNING: Timed out waiting for IPv4 on $iface after ${IPV4_WAIT_SECS}s"
+    return 1
+}
+
 function ensureNetworkReady() {
     local primary_iface="$1"
     local default_gw=""
@@ -127,6 +151,10 @@ function ensureNetworkReady() {
 
     if [ -n "$primary_iface" ] && ip link show "$primary_iface" >/dev/null 2>&1; then
         ip link set dev "$primary_iface" up || true
+    fi
+
+    if [ -n "$primary_iface" ] && ip link show "$primary_iface" >/dev/null 2>&1; then
+        waitForIpv4 "$primary_iface" || true
     fi
 
     if ! ip route show default | grep -q '^default '; then

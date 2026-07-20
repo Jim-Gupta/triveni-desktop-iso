@@ -6,7 +6,8 @@ echo "$0 $*" 1>&2
 
 readonly DIST="dist"
 readonly DEFAULT_ISO_IN=""
-readonly USER_DATA_YAMLS=("legacy-clean" "legacy-upgrade" "uefi-clean" "uefi-upgrade")
+readonly USER_DATA_YAMLS=("legacy-auto-clean" "legacy-auto-upgrade" "legacy-manual-clean" "legacy-manual-upgrade" \
+                          "uefi-auto-clean" "uefi-auto-upgrade" "uefi-manual-clean" "uefi-manual-upgrade")
 
 ISO_IN="$DEFAULT_ISO_IN"
 SSMT_DIR=""
@@ -249,19 +250,12 @@ stage_scripts_and_boot_config() {
     mkdir -p iso/scripts
     cp -a scripts/* iso/scripts/
 
-    mkdir -p iso/scripts/first-boot
-    rm -rf iso/scripts/first-boot/ssxm
-    rm -rf iso/scripts/first-boot/ssmt
-    rm -rf iso/scripts/first-boot/triveni-drivers
-    rm -rf iso/scripts/first-boot/gb
-
     if [ -n "$SSXM_DIR" ]; then
         shopt -s nullglob
         local xm_debs=("$SSXM_DIR"/ssxm_*.deb)
         shopt -u nullglob
         if [ "${#xm_debs[@]}" -gt 0 ]; then
-            cp -a scripts/first-boot/ssxm iso/scripts/first-boot/
-            cp -a "${xm_debs[@]}" iso/scripts/first-boot/ssxm/
+            cp -a "${xm_debs[@]}" iso/scripts/product-scripts/ssxm/
             log "Staged SSXM first-boot scripts and debs"
         fi
     fi
@@ -271,19 +265,17 @@ stage_scripts_and_boot_config() {
         local mt_debs=("$SSMT_DIR"/ssmt_*.deb)
         shopt -u nullglob
         if [ "${#mt_debs[@]}" -gt 0 ]; then
-            cp -a scripts/first-boot/ssmt iso/scripts/first-boot/
-            cp -a "${mt_debs[@]}" iso/scripts/first-boot/ssmt/
+            cp -a "${mt_debs[@]}" iso/scripts/product-scripts/ssmt/
             log "Staged SSMT first-boot scripts and debs"
         fi
     fi
 
     if [ -n "$DRIVERS_DIR" ] && [ -d "$DRIVERS_DIR" ]; then
-        cp -a scripts/first-boot/triveni-drivers iso/scripts/first-boot/
         shopt -s nullglob
         local driver_payload=("$DRIVERS_DIR"/*)
         shopt -u nullglob
         if [ "${#driver_payload[@]}" -gt 0 ]; then
-            cp -a "${driver_payload[@]}" iso/scripts/first-boot/triveni-drivers/
+            cp -a "${driver_payload[@]}" iso/scripts/product-scripts/triveni-drivers/
         fi
         log "Staged triveni-drivers first-boot scripts and payload"
     fi
@@ -293,8 +285,7 @@ stage_scripts_and_boot_config() {
         local gb_debs=("$GUIDE_BUILDER_DEB_DIR"/gb_*.deb)
         shopt -u nullglob
         if [ "${#gb_debs[@]}" -gt 0 ]; then
-            cp -a scripts/first-boot/gb iso/scripts/first-boot/
-            cp -a "${gb_debs[@]}" iso/scripts/first-boot/gb/
+            cp -a "${gb_debs[@]}" iso/scripts/product-scripts/gb/
             log "Staged GB first-boot scripts and debs"
         fi
     fi
@@ -310,8 +301,8 @@ compute_install_menu_title() {
     local has_mt=0
 
     shopt -s nullglob
-    local xm_pkgs=(iso/scripts/first-boot/ssxm/ssxm_*.deb)
-    local mt_pkgs=(iso/scripts/first-boot/ssmt/ssmt_*.deb)
+    local xm_pkgs=(iso/scripts/product-scripts/ssxm/ssxm_*.deb)
+    local mt_pkgs=(iso/scripts/product-scripts/ssmt/ssmt_*.deb)
     shopt -u nullglob
 
     [ "${#xm_pkgs[@]}" -gt 0 ] && has_xm=1
@@ -334,8 +325,8 @@ apply_grub_menu_title() {
     local grub_cfg="iso/boot/grub/grub.cfg"
     [ -f "$grub_cfg" ] || die "Missing GRUB config in extracted ISO: $grub_cfg"
 
-    sed -i "s|menuentry \"Install StreamScope (UEFI)\" {|menuentry \"${INSTALL_MENU_TITLE} (UEFI)\" {|g" "$grub_cfg"
-    sed -i "s|menuentry \"Install StreamScope\" {|menuentry \"${INSTALL_MENU_TITLE}\" {|g" "$grub_cfg"
+    sed -i "s|menuentry \"Clean Install StreamScope (UEFI)\" {|menuentry \"${INSTALL_MENU_TITLE} (UEFI)\" {|g" "$grub_cfg"
+    sed -i "s|menuentry \"Clean Install StreamScope (Legacy BIOS)\" {|menuentry \"${INSTALL_MENU_TITLE} (Legacy BIOS)\" {|g" "$grub_cfg"
 }
 
 rebuild_md5sum_old() {
@@ -451,7 +442,7 @@ main() {
     stage_scripts_and_boot_config
     compute_install_menu_title
     write_build_metadata
-    apply_grub_menu_title
+    # apply_grub_menu_title
     rebuild_md5sum
     extract_boot_images
     build_iso
