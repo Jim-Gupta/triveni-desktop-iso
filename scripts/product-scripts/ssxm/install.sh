@@ -5,12 +5,12 @@ set -e
 
 readonly BACKUP_FILE="/var/triveni/install/backup/ssxm/ssxm_backup.tar.gz"
 
-readonly ROOT_DIR="/var/triveni/install/product-scripts/ssxm"
+readonly ROOT_DIR="/var/triveni/install"
 
 export DEBIAN_FRONTEND=noninteractive
 
 echo "**********************************************************************"
-echo "Running install-ssxm.sh (installing SSXM from /var/triveni/install/product-scripts/ssxm/ssxm_*.deb if present)"
+echo "Running install-ssxm.sh (installing SSXM from /var/triveni/install/ssxm_*.deb if present)"
 
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then

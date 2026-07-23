@@ -250,46 +250,6 @@ stage_scripts_and_boot_config() {
     mkdir -p iso/scripts
     cp -a scripts/* iso/scripts/
 
-    if [ -n "$SSXM_DIR" ]; then
-        shopt -s nullglob
-        local xm_debs=("$SSXM_DIR"/ssxm_*.deb)
-        shopt -u nullglob
-        if [ "${#xm_debs[@]}" -gt 0 ]; then
-            cp -a "${xm_debs[@]}" iso/scripts/product-scripts/ssxm/
-            log "Staged SSXM first-boot scripts and debs"
-        fi
-    fi
-
-    if [ -n "$SSMT_DIR" ]; then
-        shopt -s nullglob
-        local mt_debs=("$SSMT_DIR"/ssmt_*.deb)
-        shopt -u nullglob
-        if [ "${#mt_debs[@]}" -gt 0 ]; then
-            cp -a "${mt_debs[@]}" iso/scripts/product-scripts/ssmt/
-            log "Staged SSMT first-boot scripts and debs"
-        fi
-    fi
-
-    if [ -n "$DRIVERS_DIR" ] && [ -d "$DRIVERS_DIR" ]; then
-        shopt -s nullglob
-        local driver_payload=("$DRIVERS_DIR"/*)
-        shopt -u nullglob
-        if [ "${#driver_payload[@]}" -gt 0 ]; then
-            cp -a "${driver_payload[@]}" iso/scripts/product-scripts/triveni-drivers/
-        fi
-        log "Staged triveni-drivers first-boot scripts and payload"
-    fi
-
-    if [ -n "$GUIDE_BUILDER_DEB_DIR" ]; then
-        shopt -s nullglob
-        local gb_debs=("$GUIDE_BUILDER_DEB_DIR"/gb_*.deb)
-        shopt -u nullglob
-        if [ "${#gb_debs[@]}" -gt 0 ]; then
-            cp -a "${gb_debs[@]}" iso/scripts/product-scripts/gb/
-            log "Staged GB first-boot scripts and debs"
-        fi
-    fi
-
     chmod +x iso/scripts/*.sh
     find iso/scripts -name "*.sh" -exec chmod +x {} +
     cp -a config/grub.cfg iso/boot/grub/
@@ -301,8 +261,8 @@ compute_install_menu_title() {
     local has_mt=0
 
     shopt -s nullglob
-    local xm_pkgs=(iso/scripts/product-scripts/ssxm/ssxm_*.deb)
-    local mt_pkgs=(iso/scripts/product-scripts/ssmt/ssmt_*.deb)
+    local xm_pkgs=(iso/pool/install/ssxm_*.deb)
+    local mt_pkgs=(iso/pool/install/ssmt_*.deb)
     shopt -u nullglob
 
     [ "${#xm_pkgs[@]}" -gt 0 ] && has_xm=1

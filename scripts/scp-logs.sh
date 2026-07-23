@@ -4,11 +4,11 @@
 read -p "Enter username [triveni]: " USERNAME
 USERNAME=${USERNAME:-triveni}
 
-read -p "Enter IP address [10.0.0.25]: " IP_ADDR
-IP_ADDR=${IP_ADDR:-10.0.0.25}
+read -p "Enter IP address [10.0.2.2]: " IP_ADDR
+IP_ADDR=${IP_ADDR:-10.0.2.2}
 
-read -p "Enter destination directory [/tmp]: " DEST_DIR
-DEST_DIR=${DEST_DIR:-/tmp}
+read -p "Enter destination directory [/home/triveni]: " DEST_DIR
+DEST_DIR=${DEST_DIR:-/home/triveni}
 
 # 2. Generate a unique timestamp (Format: YearMonthDay_HourMinuteSecond)
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -19,8 +19,23 @@ echo "📦 Bundling /var/log and /var/crash..."
 echo "📄 Target: $ARCHIVE"
 echo "----------------------------------------"
 
-# Create the compressed tarball (ignoring minor "file changed as we read it" warnings)
-sudo tar -czf "$ARCHIVE" /var/log /var/crash 2>/dev/null
+# Create the compressed tarball from paths that actually exist.
+LOG_SOURCES=()
+for path in /var/log /var/crash /target/var/log /target/var/crash; do
+    if [ -e "$path" ]; then
+        LOG_SOURCES+=("$path")
+    fi
+done
+
+if [ "${#LOG_SOURCES[@]}" -eq 0 ]; then
+    echo "❌ Error: No log paths exist to archive."
+    exit 1
+fi
+
+if ! sudo tar -czf "$ARCHIVE" "${LOG_SOURCES[@]}" 2>/dev/null; then
+    echo "❌ Error: Failed while creating the log archive."
+    exit 1
+fi
 
 if [ ! -f "$ARCHIVE" ] || [ ! -s "$ARCHIVE" ]; then
     echo "❌ Error: Failed to create the log archive."

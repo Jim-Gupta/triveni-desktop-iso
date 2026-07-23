@@ -5,12 +5,12 @@ set -e
 
 readonly BACKUP_FILE="/var/triveni/install/backup/ssmt/ssmt_backup.tar.gz"
 
-readonly ROOT_DIR="/var/triveni/install/product-scripts/ssmt"
+readonly ROOT_DIR="/var/triveni/install"
 
 export DEBIAN_FRONTEND=noninteractive
 
 echo "**********************************************************************"
-echo "Running install-ssmt.sh (installing SSMT from /var/triveni/install/product-scripts/ssmt/ssmt_*.deb if present)"
+echo "Running install-ssmt.sh (installing SSMT from $ROOT_DIR/ssmt_*.deb if present)"
 
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then

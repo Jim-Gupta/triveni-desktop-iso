@@ -2,6 +2,8 @@
 
 set -e
 
+../update-docker-mount.sh
+
 HOST_MOUNT_DIR="/home/triveni/docker-mount"
 BASE_ISO="${HOST_MOUNT_DIR}/ubuntu-24.04-desktop-amd64.iso"
 DRIVERS_DIR="${HOST_MOUNT_DIR}/triveni-drivers"
